@@ -28,7 +28,6 @@
             --check-bg: #fff;
         }
 
-        /* 다크모드 변수 */
         body.dark {
             --bg: #0f172a;
             --surface: #1e293b;
@@ -42,11 +41,11 @@
             --check-bg: #273549;
         }
 
-        /* 색상 전환 애니메이션 */
         body,
         .card,
         .todo-item,
         .input-row input,
+        .priority-select,
         .filter-btn,
         .custom-check,
         .btn-del,
@@ -55,11 +54,9 @@
         header h1,
         header p,
         .todo-text {
-            transition: background 0.3s, border-color 0.3s,
-                color 0.3s, box-shadow 0.3s;
+            transition: background 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
         }
 
-        /* 다크모드 토글 버튼 */
         .btn-dark {
             position: absolute;
             top: 0;
@@ -82,7 +79,6 @@
             background: var(--accent-light);
         }
 
-        /* input focus 다크모드 */
         body.dark .input-row input:focus {
             background: var(--surface2);
         }
@@ -93,6 +89,11 @@
 
         body.dark .btn-del:hover {
             background: #3f1c1c;
+        }
+
+        body.dark .priority-select {
+            background: var(--surface2);
+            color: var(--text);
         }
 
         * {
@@ -138,10 +139,11 @@
             margin-top: 4px;
         }
 
+        /* ── 입력 영역 ── */
         .input-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 28px;
+            margin-bottom: 12px;
         }
 
         .input-row input {
@@ -165,6 +167,77 @@
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
             background: #fff;
+        }
+
+        /* ── 우선순위 드롭다운 ── */
+        .priority-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .priority-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .priority-select {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            color: var(--text);
+            background: var(--surface2);
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .priority-select:focus {
+            border-color: var(--accent);
+        }
+
+        /* ── 우선순위 뱃지 ── */
+        .priority-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 99px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .badge-high {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-mid {
+            background: #fef9c3;
+            color: #b45309;
+        }
+
+        .badge-low {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        body.dark .badge-high {
+            background: #450a0a;
+            color: #fca5a5;
+        }
+
+        body.dark .badge-mid {
+            background: #422006;
+            color: #fcd34d;
+        }
+
+        body.dark .badge-low {
+            background: #052e16;
+            color: #86efac;
         }
 
         .btn-add {
@@ -393,7 +466,6 @@
 </head>
 
 <body>
-
     <div class="card">
         <header>
             <h1>📋 나의 할 일 관리</h1>
@@ -401,9 +473,20 @@
             <button class="btn-dark" id="dark-btn" title="다크모드 전환">🌙</button>
         </header>
 
+        <!-- 텍스트 입력 -->
         <div class="input-row">
             <input type="text" id="todo-input" placeholder="할 일을 입력하세요..." maxlength="80" />
             <button class="btn-add" id="add-btn">추가</button>
+        </div>
+
+        <!-- 우선순위 드롭다운 -->
+        <div class="priority-row">
+            <span class="priority-label">우선순위</span>
+            <select class="priority-select" id="priority-select">
+                <option value="high">🔴 높음</option>
+                <option value="mid" selected>🟡 중간</option>
+                <option value="low">🟢 낮음</option>
+            </select>
         </div>
 
         <div class="filter-row">
@@ -434,7 +517,6 @@
     <script>
         const darkBtn = document.getElementById('dark-btn');
 
-        // 다크모드 초기화
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark');
             darkBtn.textContent = '☀️';
@@ -448,6 +530,7 @@
 
         const input = document.getElementById('todo-input');
         const addBtn = document.getElementById('add-btn');
+        const prioritySel = document.getElementById('priority-select');
         const list = document.getElementById('todo-list');
         const empty = document.getElementById('empty-state');
         const statsEl = document.getElementById('stats-text');
@@ -457,6 +540,9 @@
 
         let todos = JSON.parse(localStorage.getItem('todos') || '[]');
         let filter = 'all';
+
+        // 기존 todos에 priority 없으면 기본값 추가
+        todos = todos.map(t => ({ priority: 'mid', ...t }));
 
         function save() {
             localStorage.setItem('todos', JSON.stringify(todos));
@@ -468,6 +554,12 @@
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
         }
+
+        const BADGE = {
+            high: '<span class="priority-badge badge-high">🔴 높음</span>',
+            mid: '<span class="priority-badge badge-mid">🟡 중간</span>',
+            low: '<span class="priority-badge badge-low">🟢 낮음</span>',
+        };
 
         function render() {
             list.innerHTML = '';
@@ -489,24 +581,25 @@
                 const li = document.createElement('li');
                 li.className = 'todo-item' + (todo.done ? ' done' : '');
                 li.innerHTML = `
-        <div class="custom-check ${todo.done ? 'checked' : ''}" data-id="${todo.id}">
-          <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-            <path d="M1 5L4.5 8.5L11 1" stroke="white" stroke-width="2.2"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <span class="todo-text">${escHtml(todo.text)}</span>
-        <button class="btn-del" data-id="${todo.id}" title="삭제">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14H6L5 6"/>
-            <path d="M10 11v6"/><path d="M14 11v6"/>
-            <path d="M9 6V4h6v2"/>
-          </svg>
-        </button>
-      `;
+                    <div class="custom-check ${todo.done ? 'checked' : ''}" data-id="${todo.id}">
+                        <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+                            <path d="M1 5L4.5 8.5L11 1" stroke="white" stroke-width="2.2"
+                                  stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <span class="todo-text">${escHtml(todo.text)}</span>
+                    ${BADGE[todo.priority] || BADGE.mid}
+                    <button class="btn-del" data-id="${todo.id}" title="삭제">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14H6L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                            <path d="M9 6V4h6v2"/>
+                        </svg>
+                    </button>
+                `;
                 list.appendChild(li);
             });
         }
@@ -514,7 +607,12 @@
         function addTodo() {
             const text = input.value.trim();
             if (!text) { input.focus(); return; }
-            todos.unshift({ id: Date.now(), text, done: false });
+            todos.unshift({
+                id: Date.now(),
+                text,
+                done: false,
+                priority: prioritySel.value
+            });
             input.value = '';
             save();
             render();
