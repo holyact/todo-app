@@ -139,7 +139,6 @@
             margin-top: 4px;
         }
 
-        /* ── 입력 영역 ── */
         .input-row {
             display: flex;
             gap: 10px;
@@ -169,7 +168,6 @@
             background: #fff;
         }
 
-        /* ── 우선순위 드롭다운 ── */
         .priority-row {
             display: flex;
             align-items: center;
@@ -200,7 +198,6 @@
             border-color: var(--accent);
         }
 
-        /* ── 우선순위 뱃지 ── */
         .priority-badge {
             font-size: 0.72rem;
             font-weight: 600;
@@ -473,13 +470,11 @@
             <button class="btn-dark" id="dark-btn" title="다크모드 전환">🌙</button>
         </header>
 
-        <!-- 텍스트 입력 -->
         <div class="input-row">
             <input type="text" id="todo-input" placeholder="할 일을 입력하세요..." maxlength="80" />
             <button class="btn-add" id="add-btn">추가</button>
         </div>
 
-        <!-- 우선순위 드롭다운 -->
         <div class="priority-row">
             <span class="priority-label">우선순위</span>
             <select class="priority-select" id="priority-select">
@@ -516,12 +511,10 @@
 
     <script>
         const darkBtn = document.getElementById('dark-btn');
-
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark');
             darkBtn.textContent = '☀️';
         }
-
         darkBtn.addEventListener('click', () => {
             const isDark = document.body.classList.toggle('dark');
             darkBtn.textContent = isDark ? '☀️' : '🌙';
@@ -541,12 +534,12 @@
         let todos = JSON.parse(localStorage.getItem('todos') || '[]');
         let filter = 'all';
 
-        // 기존 todos에 priority 없으면 기본값 추가
         todos = todos.map(t => ({ priority: 'mid', ...t }));
 
-        function save() {
-            localStorage.setItem('todos', JSON.stringify(todos));
-        }
+        // ★ 우선순위 정렬 순서 정의
+        const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
+
+        function save() { localStorage.setItem('todos', JSON.stringify(todos)); }
 
         function escHtml(str) {
             return str
@@ -564,11 +557,16 @@
         function render() {
             list.innerHTML = '';
 
-            const visible = todos.filter(t => {
+            let visible = todos.filter(t => {
                 if (filter === 'active') return !t.done;
                 if (filter === 'done') return t.done;
                 return true;
             });
+
+            // ★ 우선순위 높음 → 중간 → 낮음 순으로 정렬
+            visible.sort((a, b) =>
+                PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+            );
 
             const total = todos.length;
             const doneCount = todos.filter(t => t.done).length;
@@ -614,8 +612,7 @@
                 priority: prioritySel.value
             });
             input.value = '';
-            save();
-            render();
+            save(); render();
             input.focus();
         }
 
@@ -625,7 +622,6 @@
         list.addEventListener('click', e => {
             const checkEl = e.target.closest('.custom-check');
             const delEl = e.target.closest('.btn-del');
-
             if (checkEl) {
                 const id = Number(checkEl.dataset.id);
                 const t = todos.find(t => t.id === id);
