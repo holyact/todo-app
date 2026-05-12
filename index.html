@@ -46,6 +46,7 @@
         .todo-item,
         .input-row input,
         .priority-select,
+        .date-input,
         .filter-btn,
         .custom-check,
         .btn-del,
@@ -91,9 +92,11 @@
             background: #3f1c1c;
         }
 
-        body.dark .priority-select {
+        body.dark .priority-select,
+        body.dark .date-input {
             background: var(--surface2);
             color: var(--text);
+            color-scheme: dark;
         }
 
         * {
@@ -139,6 +142,7 @@
             margin-top: 4px;
         }
 
+        /* 입력 영역 */
         .input-row {
             display: flex;
             gap: 10px;
@@ -168,19 +172,28 @@
             background: #fff;
         }
 
-        .priority-row {
+        /* 옵션 행 (우선순위 + 마감일) */
+        .option-row {
             display: flex;
+            gap: 12px;
             align-items: center;
-            gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
-        .priority-label {
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .option-label {
             font-size: 0.82rem;
             color: var(--text-muted);
             white-space: nowrap;
         }
 
+        /* 우선순위 드롭다운 */
         .priority-select {
             border: 1.5px solid var(--border);
             border-radius: var(--radius-sm);
@@ -198,6 +211,25 @@
             border-color: var(--accent);
         }
 
+        /* 마감일 날짜 input */
+        .date-input {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            color: var(--text);
+            background: var(--surface2);
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .date-input:focus {
+            border-color: var(--accent);
+        }
+
+        /* 우선순위 뱃지 */
         .priority-badge {
             font-size: 0.72rem;
             font-weight: 600;
@@ -235,6 +267,26 @@
         body.dark .badge-low {
             background: #052e16;
             color: #86efac;
+        }
+
+        /* 마감일 표시 뱃지 */
+        .due-badge {
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 99px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            background: var(--accent-light);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        body.dark .due-badge {
+            background: #1e1b4b;
+            color: #a5b4fc;
         }
 
         .btn-add {
@@ -320,13 +372,14 @@
         .todo-item {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             background: var(--surface2);
             border: 1.5px solid var(--border);
             border-radius: var(--radius-sm);
             padding: 14px;
             transition: box-shadow 0.2s, border-color 0.2s;
             animation: slideIn 0.22s ease;
+            flex-wrap: wrap;
         }
 
         @keyframes slideIn {
@@ -348,6 +401,15 @@
 
         .todo-item.done {
             opacity: 0.65;
+        }
+
+        /* 할 일 텍스트 + 마감일을 세로로 묶는 wrapper */
+        .todo-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
         }
 
         .custom-check {
@@ -378,7 +440,6 @@
         }
 
         .todo-text {
-            flex: 1;
             font-size: 0.95rem;
             color: var(--text);
             line-height: 1.4;
@@ -389,6 +450,15 @@
         .todo-item.done .todo-text {
             text-decoration: line-through;
             color: var(--done-color);
+        }
+
+        /* 마감일 표시 (텍스트 아래 작은 글씨) */
+        .due-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 3px;
         }
 
         .btn-del {
@@ -458,6 +528,14 @@
                 padding: 12px 14px;
                 font-size: 0.9rem;
             }
+
+            .option-row {
+                gap: 8px;
+            }
+
+            .date-input {
+                font-size: 0.82rem;
+            }
         }
     </style>
 </head>
@@ -470,18 +548,26 @@
             <button class="btn-dark" id="dark-btn" title="다크모드 전환">🌙</button>
         </header>
 
+        <!-- 텍스트 입력 -->
         <div class="input-row">
             <input type="text" id="todo-input" placeholder="할 일을 입력하세요..." maxlength="80" />
             <button class="btn-add" id="add-btn">추가</button>
         </div>
 
-        <div class="priority-row">
-            <span class="priority-label">우선순위</span>
-            <select class="priority-select" id="priority-select">
-                <option value="high">🔴 높음</option>
-                <option value="mid" selected>🟡 중간</option>
-                <option value="low">🟢 낮음</option>
-            </select>
+        <!-- 우선순위 + 마감일 옵션 -->
+        <div class="option-row">
+            <div class="option-group">
+                <span class="option-label">우선순위</span>
+                <select class="priority-select" id="priority-select">
+                    <option value="high">🔴 높음</option>
+                    <option value="mid" selected>🟡 중간</option>
+                    <option value="low">🟢 낮음</option>
+                </select>
+            </div>
+            <div class="option-group">
+                <span class="option-label">📅 마감일</span>
+                <input type="date" class="date-input" id="date-input" />
+            </div>
         </div>
 
         <div class="filter-row">
@@ -524,6 +610,7 @@
         const input = document.getElementById('todo-input');
         const addBtn = document.getElementById('add-btn');
         const prioritySel = document.getElementById('priority-select');
+        const dateInput = document.getElementById('date-input');
         const list = document.getElementById('todo-list');
         const empty = document.getElementById('empty-state');
         const statsEl = document.getElementById('stats-text');
@@ -534,9 +621,9 @@
         let todos = JSON.parse(localStorage.getItem('todos') || '[]');
         let filter = 'all';
 
-        todos = todos.map(t => ({ priority: 'mid', ...t }));
+        // 기존 데이터 호환 (priority, dueDate 없으면 기본값)
+        todos = todos.map(t => ({ priority: 'mid', dueDate: '', ...t }));
 
-        // ★ 우선순위 정렬 순서 정의
         const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
 
         function save() { localStorage.setItem('todos', JSON.stringify(todos)); }
@@ -554,6 +641,13 @@
             low: '<span class="priority-badge badge-low">🟢 낮음</span>',
         };
 
+        // 날짜를 보기 좋게 포맷 (예: 2025-05-20 → 5월 20일)
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const [, m, d] = dateStr.split('-');
+            return `${parseInt(m)}월 ${parseInt(d)}일`;
+        }
+
         function render() {
             list.innerHTML = '';
 
@@ -563,7 +657,7 @@
                 return true;
             });
 
-            // ★ 우선순위 높음 → 중간 → 낮음 순으로 정렬
+            // 우선순위 정렬
             visible.sort((a, b) =>
                 PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
             );
@@ -578,6 +672,12 @@
             visible.forEach(todo => {
                 const li = document.createElement('li');
                 li.className = 'todo-item' + (todo.done ? ' done' : '');
+
+                // 마감일 표시 (날짜가 있을 때만)
+                const dueLabelHtml = todo.dueDate
+                    ? `<span class="due-label">📅 ${formatDate(todo.dueDate)}</span>`
+                    : '';
+
                 li.innerHTML = `
                     <div class="custom-check ${todo.done ? 'checked' : ''}" data-id="${todo.id}">
                         <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
@@ -585,7 +685,10 @@
                                   stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </div>
-                    <span class="todo-text">${escHtml(todo.text)}</span>
+                    <div class="todo-main">
+                        <span class="todo-text">${escHtml(todo.text)}</span>
+                        ${dueLabelHtml}
+                    </div>
                     ${BADGE[todo.priority] || BADGE.mid}
                     <button class="btn-del" data-id="${todo.id}" title="삭제">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -609,9 +712,11 @@
                 id: Date.now(),
                 text,
                 done: false,
-                priority: prioritySel.value
+                priority: prioritySel.value,
+                dueDate: dateInput.value      // ★ 마감일 저장
             });
             input.value = '';
+            dateInput.value = '';             // 날짜 초기화
             save(); render();
             input.focus();
         }
