@@ -142,7 +142,6 @@
             margin-top: 4px;
         }
 
-        /* 입력 영역 */
         .input-row {
             display: flex;
             gap: 10px;
@@ -172,7 +171,6 @@
             background: #fff;
         }
 
-        /* 옵션 행 (우선순위 + 마감일) */
         .option-row {
             display: flex;
             gap: 12px;
@@ -193,7 +191,6 @@
             white-space: nowrap;
         }
 
-        /* 우선순위 드롭다운 */
         .priority-select {
             border: 1.5px solid var(--border);
             border-radius: var(--radius-sm);
@@ -211,7 +208,6 @@
             border-color: var(--accent);
         }
 
-        /* 마감일 날짜 input */
         .date-input {
             border: 1.5px solid var(--border);
             border-radius: var(--radius-sm);
@@ -269,24 +265,38 @@
             color: #86efac;
         }
 
-        /* 마감일 표시 뱃지 */
-        .due-badge {
-            font-size: 0.72rem;
+        /* ★ 마감일 표시 — 3가지 상태 */
+        .due-label {
+            font-size: 0.75rem;
             font-weight: 500;
-            padding: 2px 8px;
-            border-radius: 99px;
-            white-space: nowrap;
-            flex-shrink: 0;
-            background: var(--accent-light);
-            color: var(--accent);
             display: flex;
             align-items: center;
             gap: 3px;
         }
 
-        body.dark .due-badge {
-            background: #1e1b4b;
-            color: #a5b4fc;
+        /* 기한 여유 있음 (기본) */
+        .due-label.due-ok {
+            color: var(--text-muted);
+        }
+
+        /* 오늘이 마감일 🟡 */
+        .due-label.due-today {
+            color: #b45309;
+            font-weight: 700;
+        }
+
+        body.dark .due-label.due-today {
+            color: #fcd34d;
+        }
+
+        /* 기한 초과 🔴 */
+        .due-label.due-over {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        body.dark .due-label.due-over {
+            color: #fca5a5;
         }
 
         .btn-add {
@@ -403,7 +413,6 @@
             opacity: 0.65;
         }
 
-        /* 할 일 텍스트 + 마감일을 세로로 묶는 wrapper */
         .todo-main {
             flex: 1;
             display: flex;
@@ -450,15 +459,6 @@
         .todo-item.done .todo-text {
             text-decoration: line-through;
             color: var(--done-color);
-        }
-
-        /* 마감일 표시 (텍스트 아래 작은 글씨) */
-        .due-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 3px;
         }
 
         .btn-del {
@@ -548,13 +548,11 @@
             <button class="btn-dark" id="dark-btn" title="다크모드 전환">🌙</button>
         </header>
 
-        <!-- 텍스트 입력 -->
         <div class="input-row">
             <input type="text" id="todo-input" placeholder="할 일을 입력하세요..." maxlength="80" />
             <button class="btn-add" id="add-btn">추가</button>
         </div>
 
-        <!-- 우선순위 + 마감일 옵션 -->
         <div class="option-row">
             <div class="option-group">
                 <span class="option-label">우선순위</span>
@@ -621,7 +619,6 @@
         let todos = JSON.parse(localStorage.getItem('todos') || '[]');
         let filter = 'all';
 
-        // 기존 데이터 호환 (priority, dueDate 없으면 기본값)
         todos = todos.map(t => ({ priority: 'mid', dueDate: '', ...t }));
 
         const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
@@ -641,11 +638,20 @@
             low: '<span class="priority-badge badge-low">🟢 낮음</span>',
         };
 
-        // 날짜를 보기 좋게 포맷 (예: 2025-05-20 → 5월 20일)
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
+        // ★ 마감일 상태 판단 함수
+        function getDueStatus(dateStr) {
+            if (!dateStr) return null;
+
+            // 오늘 날짜를 YYYY-MM-DD 문자열로 (시간대 오차 없이)
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
             const [, m, d] = dateStr.split('-');
-            return `${parseInt(m)}월 ${parseInt(d)}일`;
+            const label = `${parseInt(m)}월 ${parseInt(d)}일`;
+
+            if (dateStr < today) return { label, cls: 'due-over', icon: '🔴' };
+            if (dateStr === today) return { label, cls: 'due-today', icon: '🟡' };
+            return { label, cls: 'due-ok', icon: '📅' };
         }
 
         function render() {
@@ -657,7 +663,6 @@
                 return true;
             });
 
-            // 우선순위 정렬
             visible.sort((a, b) =>
                 PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
             );
@@ -673,9 +678,10 @@
                 const li = document.createElement('li');
                 li.className = 'todo-item' + (todo.done ? ' done' : '');
 
-                // 마감일 표시 (날짜가 있을 때만)
-                const dueLabelHtml = todo.dueDate
-                    ? `<span class="due-label">📅 ${formatDate(todo.dueDate)}</span>`
+                // ★ 마감일 상태에 따라 색상 클래스 + 아이콘 적용
+                const due = getDueStatus(todo.dueDate);
+                const dueLabelHtml = due
+                    ? `<span class="due-label ${due.cls}">${due.icon} ${due.label}</span>`
                     : '';
 
                 li.innerHTML = `
@@ -713,10 +719,10 @@
                 text,
                 done: false,
                 priority: prioritySel.value,
-                dueDate: dateInput.value      // ★ 마감일 저장
+                dueDate: dateInput.value
             });
             input.value = '';
-            dateInput.value = '';             // 날짜 초기화
+            dateInput.value = '';
             save(); render();
             input.focus();
         }
